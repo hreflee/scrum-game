@@ -8,6 +8,8 @@
 <script>
 import HelloWorld from './components/HelloWorld.vue';
 
+import Game from '../Game';
+
 export default {
   name: 'app',
   components: {

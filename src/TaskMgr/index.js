@@ -1,3 +1,7 @@
+import DAO from './DAO'
+
+import util from '../util'
+
 /**
  * @typedef {Object} People
  * @property {Number} id
@@ -12,12 +16,12 @@
  * @property {Number} totalTime
  * @property {Number} remainTime
  * @property {Boolean} isBlocked
+ * @property {Boolean} isChosen
  */
 
 /**
  * @typedef {Object} DashboardDTO
  * @property {Object} taskBoard
- * @property {[Story]} taskBoard.backlog
  * @property {[Story]} taskBoard.todo
  * @property {[Story]} taskBoard.processing
  * @property {[Story]} taskBoard.done
@@ -25,15 +29,15 @@
  * @property {[Number]} remainTimeForEachDay
  */
 
-class TaskMgr {
+const TaskMgr = {
   /**
    * Create a group in system
    * @param {[People]} memberList
    * @return {Number} groupId
    */
   createGroup(memberList) {
-
-  }
+    return util.getRandom(100);
+  },
 
   /**
    * Create a project belongs to a to a group
@@ -46,8 +50,9 @@ class TaskMgr {
    * @property {Number} numOfDayPreSprint
    */
   createProject(projectConfig) {
-
-  }
+    return DAO.createProject(projectConfig.groupId, projectConfig.numOfSprint,
+      projectConfig.numOfDayPreSprint);
+  },
 
   /**
    * Push the backlog into project
@@ -56,18 +61,36 @@ class TaskMgr {
    * @return {DashboardDTO} dashboard
    */
   createBackLog(projectId, initBacklog) {
-
-  }
+    DAO.reloadStoriesList(projectId, initBacklog);
+  },
 
   /**
-   * Try set the project with projectId to the next sprint. If "the next sprint" exist, return true. If not, return false.
+   * Try set the project with projectId to the next sprint.
+   * If "the next sprint" exist, return true. If not, return false.
    * i.e. return whether the sprint before set is not the final sprint
    * @param {Number} projectId
-   * @return {Boolean} isAllSprintEnd
+   * @return {NextSprintStatusDTO} nextSprintStatus
+   *
+   * @typedef {Object} NextSprintStatusDTO
+   * @property {Boolean} isAllSprintEnd
+   * @property {[Story]} backlog
    */
   setToNextSprint(projectId) {
-
-  }
+    const { numOfSprint } = DAO.getProjectConfig(projectId);
+    const { sprintNo } = DAO.getProjectCurrentStatus(projectId);
+    if (sprintNo < numOfSprint) {
+      const backlog = DAO.getBacklog(projectId);
+      DAO.setProjectCurrentStatus(projectId, sprintNo + 1, 0);
+      return {
+        isAllSprintEnd: false,
+        backlog,
+      };
+    }
+    return {
+      isAllSprintEnd: true,
+      backlog: [],
+    };
+  },
 
   /**
    * Save todo list for this sprint
@@ -77,17 +100,18 @@ class TaskMgr {
    */
   saveTodo(projectId, todoList) {
 
-  }
+  },
 
   /**
-   * Try set the project with projectId to the next day in current sprint. If "the next day" exist, return true. If not, return false.
+   * Try set the project with projectId to the next day in current sprint.
+   * If "the next day" exist, return true. If not, return false.
    * i.e. return whether the day before set is not the final day in current sprint
    * @param {Number} projectId
    * @return {Boolean} isSprintEnd
    */
   setToNextDay(projectId) {
 
-  }
+  },
 
   /**
    * Update a story in current project
@@ -97,7 +121,33 @@ class TaskMgr {
    */
   updateStory(projectId, newStoryItem) {
 
-  }
-}
+  },
+
+  _createBacklog(projectId) {
+    const stories = DAO.getAllStories(projectId);
+    const remainTimeForEachDay = DAO.getAllRemainTime();
+    const taskBoard = {
+      todo: [],
+      processing: [],
+      done: [],
+    };
+    stories.forEach((item) => {
+      if (item.isChosen) {
+        const { totalTime, remainTime } = item;
+        if (remainTime === totalTime) {
+          taskBoard.todo.push(item);
+        } else if (remainTime > 0) {
+          taskBoard.processing.push(item);
+        } else {
+          taskBoard.done.push(item);
+        }
+      }
+    });
+    return {
+      taskBoard,
+      remainTimeForEachDay,
+    };
+  },
+};
 
 export default TaskMgr;
