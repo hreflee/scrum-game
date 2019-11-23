@@ -27,7 +27,7 @@ const DAO = {
     data.projectStatus.current = { sprintNo, dayNo };
   },
   getProjectConfig(projectId) {
-    return data.projectStatus.current;
+    return data.projectStatus.config;
   },
   getProjectCurrentStatus(projectId) {
     return data.projectStatus.current;
@@ -39,15 +39,26 @@ const DAO = {
       id: index,
     }));
   },
+
   getAllStories(projectId) {
     return data.stories;
   },
 
-  updateStory(storyItem) {
-
+  updateStory(projectId, storyItem) {
+    const dataIndex = data.stories.findIndex(item => item.id === storyItem.id);
+    if (dataIndex >= 0) {
+      data.stories[dataIndex] = storyItem;
+    }
   },
-  updateStories(storyList) {
 
+  updateStories(projectId, updateStoryList) {
+    const updateStoryId2Index = updateStoryList.reduce((reducer, item, index) => Object.assign(reducer, { [item.id]: index }), {});
+    data.stories.forEach((storyItem, storyIndex) => {
+      const updateStoryIndex = updateStoryId2Index[storyItem.id];
+      if (updateStoryIndex !== undefined) {
+        data.stories[storyIndex] = updateStoryList[updateStoryIndex];
+      }
+    });
   },
 
   getBacklog(projectId) {
@@ -60,5 +71,9 @@ const DAO = {
     return data.remainTimeForEachDay;
   },
 };
+
+if (process && process.env.NODE_ENV === 'development') {
+  console.log('TaskMgr data', data);
+}
 
 export default DAO;

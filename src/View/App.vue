@@ -8,12 +8,15 @@
 <script>
 import HelloWorld from './components/HelloWorld.vue';
 
-import Game from '../Game';
+import './test-apis';
 
 export default {
   name: 'app',
   components: {
     HelloWorld,
+  },
+  mounted() {
+
   },
 };
 </script>

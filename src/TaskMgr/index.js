@@ -1,6 +1,6 @@
-import DAO from './DAO'
+import DAO from './DAO';
 
-import util from '../util'
+import util from '../util';
 
 /**
  * @typedef {Object} People
@@ -22,6 +22,7 @@ import util from '../util'
 /**
  * @typedef {Object} DashboardDTO
  * @property {Object} taskBoard
+ * @property {[Story]} taskBoard.backlog
  * @property {[Story]} taskBoard.todo
  * @property {[Story]} taskBoard.processing
  * @property {[Story]} taskBoard.done
@@ -99,7 +100,8 @@ const TaskMgr = {
    * @return {DashboardDTO} dashboard
    */
   saveTodo(projectId, todoList) {
-
+    DAO.updateStories(projectId, todoList);
+    return this._createBacklog(projectId);
   },
 
   /**
@@ -110,7 +112,13 @@ const TaskMgr = {
    * @return {Boolean} isSprintEnd
    */
   setToNextDay(projectId) {
-
+    const { numOfDayPreSprint } = DAO.getProjectConfig(projectId);
+    const { sprintNo, dayNo } = DAO.getProjectCurrentStatus(projectId);
+    if (dayNo < numOfDayPreSprint) {
+      DAO.setProjectCurrentStatus(projectId, sprintNo, dayNo + 1);
+      return true;
+    }
+    return false;
   },
 
   /**
@@ -120,27 +128,31 @@ const TaskMgr = {
    * @return {DashboardDTO} dashboard
    */
   updateStory(projectId, newStoryItem) {
-
+    DAO.updateStory(projectId, newStoryItem);
+    return this._createBacklog(projectId);
   },
 
   _createBacklog(projectId) {
     const stories = DAO.getAllStories(projectId);
     const remainTimeForEachDay = DAO.getAllRemainTime();
     const taskBoard = {
+      backlog: [],
       todo: [],
       processing: [],
       done: [],
     };
     stories.forEach((item) => {
       if (item.isChosen) {
-        const { totalTime, remainTime } = item;
-        if (remainTime === totalTime) {
+        const { totalTime, remainTime, isBlocked } = item;
+        if (remainTime === totalTime && !isBlocked) {
           taskBoard.todo.push(item);
         } else if (remainTime > 0) {
           taskBoard.processing.push(item);
         } else {
           taskBoard.done.push(item);
         }
+      } else {
+        taskBoard.backlog.push(item);
       }
     });
     return {

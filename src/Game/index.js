@@ -51,20 +51,21 @@ const Game = {
       id: util.getRandom(100),
       type,
       timeDelta: 0,
-      description: ''
+      description: '',
     };
     if (type === CardType.EVENT) {
       card.timeDelta = (-1) ** (util.getRandom(2)) * util.getRandom(5);
-      card.description = `You ${card.timeDelta > 0 ? 'gain' : 'loss'} ${card.timeDelta} hour(s) working time today.`;
+      card.description = `You ${card.timeDelta > 0 ? 'gain' : 'loss'} ${Math.abs(card.timeDelta)} hour(s) working time today.`;
     } else {
-      card.description = 'You met some problem today. The story you are working on will be blocked.';
+      const descMap = {
+        [CardType.PROBLEM]: 'You met some problem today. The story you are working on will be blocked.',
+        [CardType.SOLUTION]: 'You got a solution. You can unblock a story.',
+      };
+      card.description = descMap[type];
     }
     return card;
   },
 };
-
-console.log(TaskMgr);
-console.log(DAO);
 
 export default Game;
 export { CardType };
