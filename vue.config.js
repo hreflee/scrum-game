@@ -3,7 +3,5 @@ module.exports = {
   pages: {
     index: 'src/View/main.js',
   },
-  configureWebpack: (config) => {
-    console.log(JSON.stringify(config, null, 2));
-  },
+  publicPath: process.env.NODE_ENV === 'production' ? '/scrum-game/' : '/',
 };
