@@ -108,7 +108,6 @@ const GSTransConfig = {
     },
   },
   SET_NEXT_MEMBER: {
-    autoFire: true,
     from: GS.USER_DONE,
     to() {
       const doesAllMemberWork = store.getters.currentFinalMember;
