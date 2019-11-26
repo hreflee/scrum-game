@@ -79,8 +79,11 @@ const GSTransConfig = {
     autoFire: true,
     from: GS.DAY_START,
     to() {
-      const hasNextDay = TaskMgr.setToNextDay(projectId);
-      return hasNextDay ? GS.PICK_STORY : GS.SPRINT_SUM;
+      if (TaskMgr.setToNextDay(projectId)) {
+        return GS.PICK_STORY;
+      }
+      store.commit('setToFirstMember');
+      return GS.SPRINT_SUM;
     },
   },
   PICK_STORY: {
@@ -113,8 +116,11 @@ const GSTransConfig = {
   SET_NEXT_MEMBER: {
     from: GS.USER_DONE,
     to() {
-      const doesAllMemberWork = store.getters.currentFinalMember;
-      return doesAllMemberWork ? GS.DAY_START : GS.PICK_STORY;
+      if (store.getters.currentFinalMember) {
+        return GS.DAY_START;
+      }
+      store.commit('setToNextMember');
+      return GS.PICK_STORY;
     },
   },
   SPRINT_SUM_DONE: {

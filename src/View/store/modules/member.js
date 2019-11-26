@@ -1,5 +1,4 @@
 export default {
-  // namespace: true,
   state: {
     members: [],
     currentMemberIndex: 0,
@@ -15,6 +14,9 @@ export default {
     },
     setToNextMember(state) {
       state.currentMemberIndex++;
+    },
+    setToFirstMember(state) {
+      state.currentMemberIndex = 0;
     },
   },
 };
