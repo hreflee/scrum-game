@@ -3,6 +3,8 @@ import StateMachine from 'javascript-state-machine';
 import Game from '../../Game';
 import TaskMgr from '../../TaskMgr';
 
+import { CardType } from '../../Game';
+
 import store from './index';
 
 let projectId;
@@ -91,7 +93,8 @@ const GSTransConfig = {
   },
   GOT_RESULT: {
     from: GS.DICE_AND_DRAW,
-    to(isProblemCard) {
+    to() {
+      const isProblemCard = store.state.diceAndDrawResult.card.type === CardType.PROBLEM;
       store.commit('updateDashboard');
       if (isProblemCard) {
         const hasBlockedStory = TaskMgr.getBlockedStories(projectId).length;
