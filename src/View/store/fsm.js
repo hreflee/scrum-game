@@ -13,7 +13,7 @@ const GS = {
   ENT_PRJ_CFG: 'ENT_PRJ_CFG',
   SPRINT_START: 'SPRINT_START',
   SEL_TODO: 'SEL_TODO',
-  SPRINT_INIT_DONE: 'SPRINT_INIT_DONE',
+  DAY_START: 'DAY_START',
   PICK_STORY: 'PICK_STORY',
   DICE_AND_DRAW: 'DICE_AND_DRAW',
   UNBLOCK_STORY: 'UNBLOCK_STORY',
@@ -68,14 +68,14 @@ const GSTransConfig = {
   },
   SAVE_TODO: {
     from: GS.SEL_TODO,
-    to: GS.SPRINT_INIT_DONE,
+    to: GS.DAY_START,
     onBefore(todoList) {
       TaskMgr.saveTodo(projectId, todoList);
     },
   },
   SET_NEXT_DAY: {
     autoFire: true,
-    from: GS.SPRINT_INIT_DONE,
+    from: GS.DAY_START,
     to() {
       const hasNextDay = TaskMgr.setToNextDay(projectId);
       return hasNextDay ? GS.PICK_STORY : GS.SPRINT_SUM;
@@ -111,7 +111,7 @@ const GSTransConfig = {
     from: GS.USER_DONE,
     to() {
       const doesAllMemberWork = store.getters.currentFinalMember;
-      return doesAllMemberWork ? GS.SPRINT_INIT_DONE : GS.PICK_STORY;
+      return doesAllMemberWork ? GS.DAY_START : GS.PICK_STORY;
     },
   },
   SPRINT_SUM_DONE: {
