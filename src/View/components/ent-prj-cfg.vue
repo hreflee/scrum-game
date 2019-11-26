@@ -17,13 +17,8 @@
 <script type="text/ecmascript-6">
   import { mapState } from 'vuex'
   import { GS, GSTrans, fsm } from '../store/fsm';
-  import ElFormItem from "../../../node_modules/element-ui/packages/form/src/form-item";
-  import ElInput from "../../../node_modules/element-ui/packages/input/src/input";
 
   export default {
-    components: {
-      ElInput,
-      ElFormItem},
     name: 'ent-prj-cfg',
     data () {
       return {
