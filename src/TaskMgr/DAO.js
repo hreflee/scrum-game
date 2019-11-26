@@ -15,6 +15,10 @@ const data = {
   remainTimeForEachDay: [],
 };
 
+if (process && process.env.NODE_ENV === 'development') {
+  window.TaskMgrData = data;
+}
+
 const DAO = {
   createProject(groupId, numOfSprint, numOfDayPreSprint) {
     data.projectStatus.config = { numOfSprint, numOfDayPreSprint };
@@ -38,6 +42,10 @@ const DAO = {
       ...item,
       id: index,
     }));
+  },
+
+  getStory(projectId, storyId) {
+    return data.stories.find(item => item.id === storyId);
   },
 
   getAllStories(projectId) {
@@ -64,6 +72,16 @@ const DAO = {
   getBacklog(projectId) {
     return data.stories.filter(item => !item.isChosen);
   },
+  getBlockedStories(projectId) {
+    return data.stories.filter(item => item.isBlocked);
+  },
+  getLatestRemainTime(projectId) {
+    return data.remainTimeForEachDay.slice(-1)[0];
+  },
+  updateLatestRemainTime(projectId, newLatestRemainTime) {
+    data.remainTimeForEachDay.pop();
+    data.remainTimeForEachDay.push(newLatestRemainTime);
+  },
   pushRemainTime(projectId, todayRemainTime) {
     data.remainTimeForEachDay.push(todayRemainTime);
   },
@@ -72,8 +90,5 @@ const DAO = {
   },
 };
 
-if (process && process.env.NODE_ENV === 'development') {
-  console.log('TaskMgr data', data);
-}
 
 export default DAO;
