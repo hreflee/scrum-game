@@ -63,17 +63,17 @@ const TaskMgr = {
    */
   createBackLog(projectId, initBacklog) {
     DAO.reloadStoriesList(projectId, initBacklog);
+    DAO.pushRemainTime(projectId, initBacklog.reduce((workTimeSum, item) => workTimeSum + item.totalTime, 0));
+    return this.getDashboard(projectId);
   },
 
   /**
    * Try set the project with projectId to the next sprint.
-   * If "the next sprint" exist, return true. If not, return false.
-   * i.e. return whether the sprint before set is not the final sprint
    * @param {Number} projectId
    * @return {NextSprintStatusDTO} nextSprintStatus
    *
    * @typedef {Object} NextSprintStatusDTO
-   * @property {Boolean} isAllSprintEnd
+   * @property {Boolean} success
    * @property {[Story]} backlog
    */
   setToNextSprint(projectId) {
@@ -83,12 +83,12 @@ const TaskMgr = {
       const backlog = DAO.getBacklog(projectId);
       DAO.setProjectCurrentStatus(projectId, sprintNo + 1, 0);
       return {
-        isAllSprintEnd: false,
+        success: true,
         backlog,
       };
     }
     return {
-      isAllSprintEnd: true,
+      success: false,
       backlog: [],
     };
   },
@@ -101,21 +101,21 @@ const TaskMgr = {
    */
   saveTodo(projectId, todoList) {
     DAO.updateStories(projectId, todoList);
-    return this._createBacklog(projectId);
+    return this.getDashboard(projectId);
   },
 
   /**
    * Try set the project with projectId to the next day in current sprint.
-   * If "the next day" exist, return true. If not, return false.
-   * i.e. return whether the day before set is not the final day in current sprint
    * @param {Number} projectId
-   * @return {Boolean} isSprintEnd
+   * @return {Boolean} success
    */
   setToNextDay(projectId) {
     const { numOfDayPreSprint } = DAO.getProjectConfig(projectId);
     const { sprintNo, dayNo } = DAO.getProjectCurrentStatus(projectId);
+    const lastDayRemainTime = DAO.getLatestRemainTime(projectId);
     if (dayNo < numOfDayPreSprint) {
       DAO.setProjectCurrentStatus(projectId, sprintNo, dayNo + 1);
+      DAO.pushRemainTime(projectId, lastDayRemainTime);
       return true;
     }
     return false;
@@ -128,11 +128,22 @@ const TaskMgr = {
    * @return {DashboardDTO} dashboard
    */
   updateStory(projectId, newStoryItem) {
+    const oldStoryItem = DAO.getStory(projectId, newStoryItem.id);
+    const todayRemainTime = DAO.getLatestRemainTime(projectId);
+    if (newStoryItem.remainTime < 0) {
+      newStoryItem.remainTime = 0;
+    }
+    DAO.updateLatestRemainTime(projectId, todayRemainTime - (oldStoryItem.remainTime - newStoryItem.remainTime));
     DAO.updateStory(projectId, newStoryItem);
-    return this._createBacklog(projectId);
+    return this.getDashboard(projectId);
   },
 
-  _createBacklog(projectId) {
+  /**
+   * Get dashboard data.
+   * @param {Number} projectId
+   * @return {DashboardDTO} dashboard
+   */
+  getDashboard(projectId) {
     const stories = DAO.getAllStories(projectId);
     const remainTimeForEachDay = DAO.getAllRemainTime();
     const taskBoard = {
@@ -160,6 +171,15 @@ const TaskMgr = {
       remainTimeForEachDay,
     };
   },
+
+  /**
+   * Get all blocked stories.
+   * @param projectId
+   * @return {[Story]} blockedStoriesList
+   */
+  getBlockedStories(projectId) {
+    return DAO.getBlockedStories(projectId);
+  },
 };
 
-export default TaskMgr;
+export default util.decorateApis('TaskMgr', TaskMgr);

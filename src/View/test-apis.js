@@ -1,50 +1,49 @@
-import OrgGame from '../Game';
-import OrgTaskMgr from '../TaskMgr';
+import Game from '../Game';
+import TaskMgr from '../TaskMgr';
+import { CardType } from '../Game';
 
-const decorateApis = (name, apis) => {
-  const decorated = {}
-  Object.keys(apis).forEach((apiName) => {
-    decorated[apiName] = function () {
-      console.group(`call ${name}.${apiName}, args:`, ...arguments);
-      const res = apis[apiName].call(apis, ...arguments);
-      console.log('result:', res);
-      console.groupEnd(`call ${name}.${apiName}`);
-      return res;
-    };
-  });
-  return decorated;
-};
+import util from '../util';
 
-const Game = decorateApis('Game', OrgGame);
-const TaskMgr = decorateApis('TaskMgr', OrgTaskMgr);
-window.Game = Game;
-window.TaskMgr = TaskMgr;
+const groupSize = 3;
+const numOfSprint = 5;
+const numOfDayPreSprint = 3;
 
-const groupId = TaskMgr.createGroup(new Array(3).map((item, index) => ({
+const groupId = TaskMgr.createGroup(new Array(groupSize).fill({}).map((item, index) => ({
   id: index, name: index.toString(), avatar: index.toString(),
 })));
 const projectId = TaskMgr.createProject({
   groupId,
-  numOfSprint: 3,
-  numOfDayPreSprint: 3,
+  numOfSprint,
+  numOfDayPreSprint,
 });
 
 Game.init(projectId);
 
-const { backlog } = TaskMgr.setToNextSprint(projectId);
-const todo = backlog.filter(() => Math.random() > 0.5).map(item => ({
-  ...item,
-  isChosen: true,
-}));
 
-TaskMgr.saveTodo(projectId, todo);
+while (true) {
+  const { success, backlog } = TaskMgr.setToNextSprint(projectId);
+  if (!success) {
+    break;
+  }
+  const dashboard = TaskMgr.getDashboard(projectId);
 
-TaskMgr.setToNextDay(projectId);
+  const todo = backlog.filter(() => Math.random() > 0.5).map(item => ({
+    ...item,
+    isChosen: true,
+  })).concat(dashboard.taskBoard.processing);
 
-Game.dice(projectId);
-
-Game.drawCard(projectId);
-
-todo[0].isBlocked = true;
-todo[0].isChosen = true;
-TaskMgr.updateStory(projectId, todo[0]);
+  TaskMgr.saveTodo(projectId, todo);
+  while (TaskMgr.setToNextDay(projectId)) {
+    for (let memberNo = 0; memberNo < groupSize; memberNo++) {
+      const { card } = Game.diceAndDrawCard(projectId, todo[util.getRandom(todo.length) - 1]);
+      if (card.type === CardType.SOLUTION) {
+        const blockedStories = TaskMgr.getBlockedStories(projectId);
+        if (blockedStories.length) {
+          Game.useCard(projectId, card, blockedStories[0]);
+        }
+      }
+      TaskMgr.getDashboard(projectId);
+      debugger;
+    }
+  }
+}
