@@ -7,8 +7,13 @@
 <script type="text/ecmascript-6">
   import { mapState } from 'vuex'
   import { GS, GSTrans, fsm } from '../store/fsm';
+  import StoryCard from "./story-card";
+  import Card from "./card";
 
   export default {
+    components: {
+      Card,
+      StoryCard},
     name: 'start',
     data(){ return {GS} },
     computed: mapState(['globalState']),

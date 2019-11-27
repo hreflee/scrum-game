@@ -91,7 +91,7 @@ const GSTransConfig = {
     to: GS.DICE_AND_DRAW,
     onBefore(storyItem) {
       const diceAndDrawResult = Game.diceAndDrawCard(projectId, storyItem);
-      store.commit('diceAndDrawResult', diceAndDrawResult);
+      store.commit('updateDiceAndDrawResult', diceAndDrawResult);
     },
   },
   GOT_RESULT: {
@@ -149,7 +149,7 @@ const fsm = new StateMachine({
 
 store.commit('updateGlobalState', GS.INIT);
 
-const autoTransState2Trans = Object.keys(GSTransConfig).map(transKey => {
+const autoTransState2Trans = Object.keys(GSTransConfig).map((transKey) => {
   if (GSTransConfig[transKey].autoFire) {
     return {
       state: GSTransConfig[transKey].from,
@@ -159,7 +159,7 @@ const autoTransState2Trans = Object.keys(GSTransConfig).map(transKey => {
   return null;
 })
   .filter(item => item)
-  .reduce((reducer, item) => ({...reducer, [item.state]: item.trans}), {});
+  .reduce((reducer, item) => ({ ...reducer, [item.state]: item.trans }), {});
 
 fsm.observe('onAfterTransition', (lifecycle) => {
   console.log(lifecycle);
@@ -175,6 +175,41 @@ fsm.observe('onAfterTransition', (lifecycle) => {
 store.watch(() => store.state.projectId, (newProjectId) => {
   projectId = newProjectId;
 });
+
+if (process && process.env.NODE_ENV === 'development') {
+  let waitCount = 0;
+  const wait = f => setTimeout(f, (++waitCount) * 1000);
+  // fsm[GSTrans.CLICK_START_GAME]();
+  // fsm[GSTrans.ENTER_MEMBER_INFO]([
+  //   { id: 0, name: 'Mary', avatar: '' },
+  //   { id: 1, name: 'James', avatar: '' },
+  //   { id: 2, name: 'John', avatar: '' },
+  // ]);
+  // fsm[GSTrans.ENTER_PRJ_CONFIG]({
+  //   numOfSprint: 3,
+  //   numOfDayPreSprint: 3,
+  // });
+  // wait(() => {
+  //   fsm[GSTrans.SAVE_TODO]([{
+  //     id: 0,
+  //     description: 'Users can exchange emails securely with predefined recipients.',
+  //     totalTime: 24,
+  //     remainTime: 24,
+  //     isBlocked: false,
+  //     isChosen: false,
+  //   }]);
+  // });
+  // wait(() => {
+  //   fsm[GSTrans.PICK_STORY]({
+  //     id: 0,
+  //     description: 'Users can send short messages securely to each other.',
+  //     totalTime: 28,
+  //     remainTime: 28,
+  //     isBlocked: false,
+  //     isChosen: false,
+  //   });
+  // });
+}
 
 export {
   GS,

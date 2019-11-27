@@ -10,10 +10,12 @@
 import Start from "./components/start";
 import EntMember from "./components/ent-member";
 import EntPrjCfg from "./components/ent-prj-cfg";
+import StoryCard from "./components/story-card";
 
 export default {
   name: 'app',
   components: {
+    StoryCard,
     EntPrjCfg,
     EntMember,
     Start
