@@ -73,6 +73,7 @@ const GSTransConfig = {
       const { success: hasNextSprint } = TaskMgr.setToNextSprint(projectId);
       if (hasNextSprint) {
         store.commit('setToNextSprint');
+        store.commit('updateDashboard');
         return GS.SEL_TODO;
       }
       return GS.GAME_END;

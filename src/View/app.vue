@@ -3,7 +3,9 @@
     <start></start>
     <ent-member></ent-member>
     <ent-prj-cfg></ent-prj-cfg>
+    <sel-todo></sel-todo>
     <state-hint></state-hint>
+    <dice-draw-result></dice-draw-result>
     <task-board></task-board>
     <summarize></summarize>
   </el-container>
@@ -17,10 +19,14 @@ import StoryCard from "./components/story-card";
 import StateHint from "./components/state-hint";
 import TaskBoard from "./components/task-board";
 import Summarize from "./components/summarize";
+import SelTodo from "./components/sel-todo";
+import DiceDrawResult from "./components/dice-draw-result";
 
 export default {
   name: 'app',
   components: {
+    DiceDrawResult,
+    SelTodo,
     Summarize,
     TaskBoard,
     StateHint,
