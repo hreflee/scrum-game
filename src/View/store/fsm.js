@@ -3,6 +3,7 @@ import StateMachine from 'javascript-state-machine';
 import Game from '../../Game';
 import TaskMgr from '../../TaskMgr';
 
+import { OverallStoryStatus } from '../../TaskMgr';
 import { CardType } from '../../Game';
 
 import store from './index';
@@ -16,7 +17,9 @@ const GS = {
   SPRINT_START: 'SPRINT_START',
   SEL_TODO: 'SEL_TODO',
   DAY_START: 'DAY_START',
+  BEFORE_PICK_STORY: 'BEFORE_PICK_STORY',
   PICK_STORY: 'PICK_STORY',
+  NO_STORY: 'NO_STORY',
   DICE_AND_DRAW: 'DICE_AND_DRAW',
   UNBLOCK_STORY: 'UNBLOCK_STORY',
   USER_DONE: 'USER_DONE',
@@ -31,7 +34,9 @@ const GSTrans = {
   SET_NEXT_SPRINT: 'setNextSprint',
   SAVE_TODO: 'saveTodo',
   SET_NEXT_DAY: 'setNextDay',
+  GET_STORY_STATUS: 'getStoryStatus',
   PICK_STORY: 'pickStory',
+  GOT_REASON: 'gotReason',
   GOT_RESULT: 'gotResult',
   SELECT_UNBLOCK: 'selectUnblock',
   SET_NEXT_MEMBER: 'setNextMember',
@@ -48,6 +53,7 @@ const GSTransConfig = {
     to: GS.ENT_PRJ_CFG,
     onBefore(memberList) {
       TaskMgr.createGroup(memberList);
+      store.commit('setMemberList', memberList);
     },
   },
   ENTER_PRJ_CONFIG: {
@@ -65,7 +71,11 @@ const GSTransConfig = {
     from: GS.SPRINT_START,
     to() {
       const { success: hasNextSprint } = TaskMgr.setToNextSprint(projectId);
-      return hasNextSprint ? GS.SEL_TODO : GS.GAME_END;
+      if (hasNextSprint) {
+        store.commit('setToNextSprint');
+        return GS.SEL_TODO;
+      }
+      return GS.GAME_END;
     },
   },
   SAVE_TODO: {
@@ -80,10 +90,24 @@ const GSTransConfig = {
     from: GS.DAY_START,
     to() {
       if (TaskMgr.setToNextDay(projectId)) {
-        return GS.PICK_STORY;
+        store.commit('updateDashboard');
+        store.commit('setToNextDay');
+        return GS.BEFORE_PICK_STORY;
       }
       store.commit('setToFirstMember');
       return GS.SPRINT_SUM;
+    },
+  },
+  GET_STORY_STATUS: {
+    autoFire: true,
+    from: GS.BEFORE_PICK_STORY,
+    to() {
+      const overallStoryStatus = TaskMgr.getOverallStoryStatus(projectId);
+      if (overallStoryStatus !== OverallStoryStatus.COMMON) {
+        store.commit('updateNoStoryReason', overallStoryStatus);
+        return GS.NO_STORY;
+      }
+      return GS.PICK_STORY;
     },
   },
   PICK_STORY: {
@@ -94,12 +118,27 @@ const GSTransConfig = {
       store.commit('updateDiceAndDrawResult', diceAndDrawResult);
     },
   },
+  GOT_REASON: {
+    from: GS.NO_STORY,
+    to() {
+      const reason = store.state.gameStatus.noStoryReason;
+      setTimeout(() => {
+        store.commit('updateNoStoryReason', OverallStoryStatus.COMMON);
+      });
+      if (reason === OverallStoryStatus.ALL_DONE) {
+        return GS.SPRINT_SUM;
+      }
+      const diceAndDrawResult = Game.diceAndDrawCard(projectId);
+      store.commit('updateDiceAndDrawResult', diceAndDrawResult);
+      return GS.DICE_AND_DRAW;
+    },
+  },
   GOT_RESULT: {
     from: GS.DICE_AND_DRAW,
     to() {
-      const isProblemCard = store.state.diceAndDrawResult.card.type === CardType.PROBLEM;
+      const isSolutionCard = store.state.diceAndDrawResult.card.type === CardType.SOLUTION;
       store.commit('updateDashboard');
-      if (isProblemCard) {
+      if (isSolutionCard) {
         const hasBlockedStory = TaskMgr.getBlockedStories(projectId).length;
         return hasBlockedStory ? GS.UNBLOCK_STORY : GS.USER_DONE;
       }
@@ -111,6 +150,7 @@ const GSTransConfig = {
     to: GS.USER_DONE,
     onBefore(storyToUnblock) {
       Game.useCard(projectId, store.state.diceAndDrawResult.card, storyToUnblock);
+      store.commit('updateDashboard');
     },
   },
   SET_NEXT_MEMBER: {
@@ -120,7 +160,7 @@ const GSTransConfig = {
         return GS.DAY_START;
       }
       store.commit('setToNextMember');
-      return GS.PICK_STORY;
+      return GS.BEFORE_PICK_STORY;
     },
   },
   SPRINT_SUM_DONE: {
@@ -161,8 +201,8 @@ const autoTransState2Trans = Object.keys(GSTransConfig).map((transKey) => {
   .filter(item => item)
   .reduce((reducer, item) => ({ ...reducer, [item.state]: item.trans }), {});
 
-fsm.observe('onAfterTransition', (lifecycle) => {
-  console.log(lifecycle);
+fsm.observe('onAfterTransition', (lifecycle, arg) => {
+  console.log(lifecycle, arg);
   store.commit('updateGlobalState', lifecycle.to);
   setTimeout(() => {
     const autoTrans = autoTransState2Trans[lifecycle.to];
@@ -179,6 +219,14 @@ store.watch(() => store.state.projectId, (newProjectId) => {
 if (process && process.env.NODE_ENV === 'development') {
   let waitCount = 0;
   const wait = f => setTimeout(f, (++waitCount) * 1000);
+  window.fsm = fsm;
+  window.doSaveTodo = () => {
+    const { backlog } = TaskMgr.getDashboard(projectId).taskBoard;
+    fsm[GSTrans.SAVE_TODO](backlog.filter(() => Math.random() > 9));
+  };
+  window.doGotResult = () => {
+    fsm[GSTrans.GOT_RESULT]();
+  };
   // fsm[GSTrans.CLICK_START_GAME]();
   // fsm[GSTrans.ENTER_MEMBER_INFO]([
   //   { id: 0, name: 'Mary', avatar: '' },
@@ -187,27 +235,17 @@ if (process && process.env.NODE_ENV === 'development') {
   // ]);
   // fsm[GSTrans.ENTER_PRJ_CONFIG]({
   //   numOfSprint: 3,
-  //   numOfDayPreSprint: 3,
+  //   numOfDayPreSprint: 30,
   // });
   // wait(() => {
-  //   fsm[GSTrans.SAVE_TODO]([{
-  //     id: 0,
-  //     description: 'Users can exchange emails securely with predefined recipients.',
-  //     totalTime: 24,
-  //     remainTime: 24,
-  //     isBlocked: false,
-  //     isChosen: false,
-  //   }]);
+  //   window.doSaveTodo();
   // });
   // wait(() => {
-  //   fsm[GSTrans.PICK_STORY]({
-  //     id: 0,
-  //     description: 'Users can send short messages securely to each other.',
-  //     totalTime: 28,
-  //     remainTime: 28,
-  //     isBlocked: false,
-  //     isChosen: false,
-  //   });
+  //   const { todo } = TaskMgr.getDashboard(projectId).taskBoard;
+  //   fsm[GSTrans.PICK_STORY](todo[0]);
+  // });
+  // wait(() => {
+  //   window.doGotResult();
   // });
 }
 

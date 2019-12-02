@@ -1,8 +1,10 @@
 <template>
-  <el-container class="app">
+  <el-container class="app" direction="vertical">
     <start></start>
     <ent-member></ent-member>
     <ent-prj-cfg></ent-prj-cfg>
+    <state-hint></state-hint>
+    <task-board></task-board>
   </el-container>
 </template>
 
@@ -11,10 +13,14 @@ import Start from "./components/start";
 import EntMember from "./components/ent-member";
 import EntPrjCfg from "./components/ent-prj-cfg";
 import StoryCard from "./components/story-card";
+import StateHint from "./components/state-hint";
+import TaskBoard from "./components/task-board";
 
 export default {
   name: 'app',
   components: {
+    TaskBoard,
+    StateHint,
     StoryCard,
     EntPrjCfg,
     EntMember,

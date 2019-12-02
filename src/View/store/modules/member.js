@@ -4,6 +4,9 @@ export default {
     currentMemberIndex: 0,
   },
   getters: {
+    currentMember(state) {
+      return state.members[state.currentMemberIndex] || {};
+    },
     currentFinalMember(state) {
       return state.currentMemberIndex === state.members.length - 1;
     },

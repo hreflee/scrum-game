@@ -4,6 +4,7 @@ import Vuex from 'vuex';
 import TaskMgr from '../../TaskMgr';
 
 import member from './modules/member';
+import gameStatus from './modules/game-status';
 
 Vue.use(Vuex);
 
@@ -15,7 +16,12 @@ const store = new Vuex.Store({
 
     diceAndDrawResult: {},
 
-    taskBoard: [],
+    taskBoard: {
+      backlog: [],
+      todo: [],
+      processing: [],
+      done: [],
+    },
     remainTimeForEachDay: [],
   },
   mutations: {
@@ -36,6 +42,7 @@ const store = new Vuex.Store({
   },
   modules: {
     member,
+    gameStatus,
   },
 });
 

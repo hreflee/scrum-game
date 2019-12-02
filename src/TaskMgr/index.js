@@ -30,6 +30,17 @@ import util from '../util';
  * @property {[Number]} remainTimeForEachDay
  */
 
+/**
+ * Enum for overall story status.
+ * @readonly
+ * @enum {Number} OverallStoryStatus
+ */
+const OverallStoryStatus = {
+  COMMON: 0,
+  ALL_BLOCKED: 1,
+  ALL_DONE: 2,
+};
+
 const TaskMgr = {
   /**
    * Create a group in system
@@ -100,7 +111,10 @@ const TaskMgr = {
    * @return {DashboardDTO} dashboard
    */
   saveTodo(projectId, todoList) {
-    DAO.updateStories(projectId, todoList);
+    DAO.updateStories(projectId, todoList.map(item => ({
+      ...item,
+      isChosen: true,
+    })));
     return this.getDashboard(projectId);
   },
 
@@ -119,6 +133,22 @@ const TaskMgr = {
       return true;
     }
     return false;
+  },
+
+  /**
+   * Get overall story status.
+   * @param {Number} projectId
+   * @return {OverallStoryStatus} overallStoryStatus
+   */
+  getOverallStoryStatus(projectId) {
+    const { todo, processing } = this.getDashboard(projectId).taskBoard;
+    if (todo.length) {
+      return OverallStoryStatus.COMMON;
+    }
+    if (processing.length) {
+      return processing.filter(item => !item.isBlocked).length > 0 ? OverallStoryStatus.COMMON : OverallStoryStatus.ALL_BLOCKED;
+    }
+    return OverallStoryStatus.ALL_DONE;
   },
 
   /**
@@ -183,3 +213,4 @@ const TaskMgr = {
 };
 
 export default util.decorateApis('TaskMgr', TaskMgr);
+export { OverallStoryStatus };
