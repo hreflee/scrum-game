@@ -5,6 +5,7 @@
     <ent-prj-cfg></ent-prj-cfg>
     <state-hint></state-hint>
     <task-board></task-board>
+    <summarize></summarize>
   </el-container>
 </template>
 
@@ -15,10 +16,12 @@ import EntPrjCfg from "./components/ent-prj-cfg";
 import StoryCard from "./components/story-card";
 import StateHint from "./components/state-hint";
 import TaskBoard from "./components/task-board";
+import Summarize from "./components/summarize";
 
 export default {
   name: 'app',
   components: {
+    Summarize,
     TaskBoard,
     StateHint,
     StoryCard,

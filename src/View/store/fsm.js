@@ -222,7 +222,7 @@ if (process && process.env.NODE_ENV === 'development') {
   window.fsm = fsm;
   window.doSaveTodo = () => {
     const { backlog } = TaskMgr.getDashboard(projectId).taskBoard;
-    fsm[GSTrans.SAVE_TODO](backlog.filter(() => Math.random() > 9));
+    fsm[GSTrans.SAVE_TODO](backlog.filter(() => Math.random() > 0.1));
   };
   window.doGotResult = () => {
     fsm[GSTrans.GOT_RESULT]();

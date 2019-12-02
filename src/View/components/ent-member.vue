@@ -62,7 +62,8 @@
   .member-item {
     display: flex;
     justify-content: space-between;
-    margin: 0 10%;
+    max-width: 450px;
+    margin: auto;
   }
   .add-btn-wrapper {
     display: flex;
