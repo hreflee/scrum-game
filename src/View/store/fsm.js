@@ -3,6 +3,9 @@ import StateMachine from 'javascript-state-machine';
 import Game from '../../Game';
 import TaskMgr from '../../TaskMgr';
 
+import { OverallStoryStatus } from '../../TaskMgr';
+import { CardType } from '../../Game';
+
 import store from './index';
 
 let projectId;
@@ -13,8 +16,10 @@ const GS = {
   ENT_PRJ_CFG: 'ENT_PRJ_CFG',
   SPRINT_START: 'SPRINT_START',
   SEL_TODO: 'SEL_TODO',
-  SPRINT_INIT_DONE: 'SPRINT_INIT_DONE',
+  DAY_START: 'DAY_START',
+  BEFORE_PICK_STORY: 'BEFORE_PICK_STORY',
   PICK_STORY: 'PICK_STORY',
+  NO_STORY: 'NO_STORY',
   DICE_AND_DRAW: 'DICE_AND_DRAW',
   UNBLOCK_STORY: 'UNBLOCK_STORY',
   USER_DONE: 'USER_DONE',
@@ -29,7 +34,9 @@ const GSTrans = {
   SET_NEXT_SPRINT: 'setNextSprint',
   SAVE_TODO: 'saveTodo',
   SET_NEXT_DAY: 'setNextDay',
+  GET_STORY_STATUS: 'getStoryStatus',
   PICK_STORY: 'pickStory',
+  GOT_REASON: 'gotReason',
   GOT_RESULT: 'gotResult',
   SELECT_UNBLOCK: 'selectUnblock',
   SET_NEXT_MEMBER: 'setNextMember',
@@ -46,6 +53,7 @@ const GSTransConfig = {
     to: GS.ENT_PRJ_CFG,
     onBefore(memberList) {
       TaskMgr.createGroup(memberList);
+      store.commit('setMemberList', memberList);
     },
   },
   ENTER_PRJ_CONFIG: {
@@ -63,22 +71,44 @@ const GSTransConfig = {
     from: GS.SPRINT_START,
     to() {
       const { success: hasNextSprint } = TaskMgr.setToNextSprint(projectId);
-      return hasNextSprint ? GS.SEL_TODO : GS.GAME_END;
+      if (hasNextSprint) {
+        store.commit('setToNextSprint');
+        store.commit('updateDashboard');
+        return GS.SEL_TODO;
+      }
+      return GS.GAME_END;
     },
   },
   SAVE_TODO: {
     from: GS.SEL_TODO,
-    to: GS.SPRINT_INIT_DONE,
+    to: GS.DAY_START,
     onBefore(todoList) {
       TaskMgr.saveTodo(projectId, todoList);
     },
   },
   SET_NEXT_DAY: {
     autoFire: true,
-    from: GS.SPRINT_INIT_DONE,
+    from: GS.DAY_START,
     to() {
-      const hasNextDay = TaskMgr.setToNextDay(projectId);
-      return hasNextDay ? GS.PICK_STORY : GS.SPRINT_SUM;
+      if (TaskMgr.setToNextDay(projectId)) {
+        store.commit('updateDashboard');
+        store.commit('setToNextDay');
+        return GS.BEFORE_PICK_STORY;
+      }
+      store.commit('setToFirstMember');
+      return GS.SPRINT_SUM;
+    },
+  },
+  GET_STORY_STATUS: {
+    autoFire: true,
+    from: GS.BEFORE_PICK_STORY,
+    to() {
+      const overallStoryStatus = TaskMgr.getOverallStoryStatus(projectId);
+      if (overallStoryStatus !== OverallStoryStatus.COMMON) {
+        store.commit('updateNoStoryReason', overallStoryStatus);
+        return GS.NO_STORY;
+      }
+      return GS.PICK_STORY;
     },
   },
   PICK_STORY: {
@@ -86,14 +116,30 @@ const GSTransConfig = {
     to: GS.DICE_AND_DRAW,
     onBefore(storyItem) {
       const diceAndDrawResult = Game.diceAndDrawCard(projectId, storyItem);
-      store.commit('diceAndDrawResult', diceAndDrawResult);
+      store.commit('updateDiceAndDrawResult', diceAndDrawResult);
+    },
+  },
+  GOT_REASON: {
+    from: GS.NO_STORY,
+    to() {
+      const reason = store.state.gameStatus.noStoryReason;
+      setTimeout(() => {
+        store.commit('updateNoStoryReason', OverallStoryStatus.COMMON);
+      });
+      if (reason === OverallStoryStatus.ALL_DONE) {
+        return GS.SPRINT_SUM;
+      }
+      const diceAndDrawResult = Game.diceAndDrawCard(projectId);
+      store.commit('updateDiceAndDrawResult', diceAndDrawResult);
+      return GS.DICE_AND_DRAW;
     },
   },
   GOT_RESULT: {
     from: GS.DICE_AND_DRAW,
-    to(isProblemCard) {
+    to() {
+      const isSolutionCard = store.state.diceAndDrawResult.card.type === CardType.SOLUTION;
       store.commit('updateDashboard');
-      if (isProblemCard) {
+      if (isSolutionCard) {
         const hasBlockedStory = TaskMgr.getBlockedStories(projectId).length;
         return hasBlockedStory ? GS.UNBLOCK_STORY : GS.USER_DONE;
       }
@@ -105,14 +151,17 @@ const GSTransConfig = {
     to: GS.USER_DONE,
     onBefore(storyToUnblock) {
       Game.useCard(projectId, store.state.diceAndDrawResult.card, storyToUnblock);
+      store.commit('updateDashboard');
     },
   },
   SET_NEXT_MEMBER: {
-    autoFire: true,
     from: GS.USER_DONE,
     to() {
-      const doesAllMemberWork = store.getters.currentFinalMember;
-      return doesAllMemberWork ? GS.SPRINT_INIT_DONE : GS.PICK_STORY;
+      if (store.getters.currentFinalMember) {
+        return GS.DAY_START;
+      }
+      store.commit('setToNextMember');
+      return GS.BEFORE_PICK_STORY;
     },
   },
   SPRINT_SUM_DONE: {
@@ -141,7 +190,7 @@ const fsm = new StateMachine({
 
 store.commit('updateGlobalState', GS.INIT);
 
-const autoTransState2Trans = Object.keys(GSTransConfig).map(transKey => {
+const autoTransState2Trans = Object.keys(GSTransConfig).map((transKey) => {
   if (GSTransConfig[transKey].autoFire) {
     return {
       state: GSTransConfig[transKey].from,
@@ -151,10 +200,10 @@ const autoTransState2Trans = Object.keys(GSTransConfig).map(transKey => {
   return null;
 })
   .filter(item => item)
-  .reduce((reducer, item) => ({...reducer, [item.state]: item.trans}), {});
+  .reduce((reducer, item) => ({ ...reducer, [item.state]: item.trans }), {});
 
-fsm.observe('onAfterTransition', (lifecycle) => {
-  console.log(lifecycle);
+fsm.observe('onAfterTransition', (lifecycle, arg) => {
+  console.log(lifecycle, arg);
   store.commit('updateGlobalState', lifecycle.to);
   setTimeout(() => {
     const autoTrans = autoTransState2Trans[lifecycle.to];
@@ -167,6 +216,39 @@ fsm.observe('onAfterTransition', (lifecycle) => {
 store.watch(() => store.state.projectId, (newProjectId) => {
   projectId = newProjectId;
 });
+
+if (process && process.env.NODE_ENV === 'development') {
+  let waitCount = 0;
+  const wait = f => setTimeout(f, (++waitCount) * 1000);
+  window.fsm = fsm;
+  window.doSaveTodo = () => {
+    const { backlog } = TaskMgr.getDashboard(projectId).taskBoard;
+    fsm[GSTrans.SAVE_TODO](backlog.filter(() => Math.random() > 0.1));
+  };
+  window.doGotResult = () => {
+    fsm[GSTrans.GOT_RESULT]();
+  };
+  // fsm[GSTrans.CLICK_START_GAME]();
+  // fsm[GSTrans.ENTER_MEMBER_INFO]([
+  //   { id: 0, name: 'Mary', avatar: '' },
+  //   { id: 1, name: 'James', avatar: '' },
+  //   { id: 2, name: 'John', avatar: '' },
+  // ]);
+  // fsm[GSTrans.ENTER_PRJ_CONFIG]({
+  //   numOfSprint: 3,
+  //   numOfDayPreSprint: 30,
+  // });
+  // wait(() => {
+  //   window.doSaveTodo();
+  // });
+  // wait(() => {
+  //   const { todo } = TaskMgr.getDashboard(projectId).taskBoard;
+  //   fsm[GSTrans.PICK_STORY](todo[0]);
+  // });
+  // wait(() => {
+  //   window.doGotResult();
+  // });
+}
 
 export {
   GS,

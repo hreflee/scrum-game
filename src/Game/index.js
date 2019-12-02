@@ -86,17 +86,20 @@ const Game = {
    * @property {Card} card
    * @property {String} hint
    */
-  diceAndDrawCard(projectId, story) {
+  diceAndDrawCard(projectId, story = null) {
     const workTime = this.dice(projectId);
     const card = this.drawCard(projectId);
-    const workedStory = {
-      ...story,
-      remainTime: story.remainTime - workTime,
-    };
-    TaskMgr.updateStory(projectId, workedStory);
+    let workedStory = story;
+    if (story && !story.isBlocked) {
+      workedStory = {
+        ...story,
+        remainTime: story.remainTime - workTime,
+      };
+      TaskMgr.updateStory(projectId, workedStory);
+    }
     switch (card.type) {
       case CardType.EVENT: {
-        this.useCard(projectId, card, workedStory, -workTime);
+        story && this.useCard(projectId, card, workedStory, -workTime);
         return {
           workTime,
           card,
@@ -116,7 +119,7 @@ const Game = {
       case CardType.PROBLEM: {
         const allGotCard = DAO.getAllCards(projectId);
         const firstSolutionCard = allGotCard.find(item => item.type === CardType.SOLUTION && !item.isUsed);
-        this.useCard(projectId, card, workedStory);
+        story && this.useCard(projectId, card, workedStory);
         if (firstSolutionCard) {
           this.useCard(projectId, firstSolutionCard, workedStory);
           return {
