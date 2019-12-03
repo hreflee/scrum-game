@@ -1,5 +1,5 @@
 <template>
-  <el-dialog :visible="globalState === GS.SEL_TODO"
+  <el-dialog :visible="show"
              title="Select some stories into todo list for current sprint"
              :show-close="false"
              width="80%"
@@ -39,6 +39,16 @@
         globalState: 'globalState',
         backlog: state => state.taskBoard.backlog
       }),
+      show() {
+        return this.globalState === GS.SEL_TODO;
+      }
+    },
+    watch: {
+      show(n) {
+        if (n) {
+          this.selectedStories = []
+        }
+      },
     },
     methods: {
       isStorySelected(id) {

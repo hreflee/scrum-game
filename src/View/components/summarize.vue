@@ -1,8 +1,10 @@
 <template>
-  <el-dialog :visible="show" :title="title">
+  <el-dialog :visible="show"
+             :show-close="false"
+             :title="title">
     <div ref="chartContainer"></div>
     <div slot="footer">
-      <el-button type="primary" @click="continueClick">Continue</el-button>
+      <el-button type="primary" @click="continueClick">{{globalState === GS.SPRINT_SUM ? 'Continue' : 'Replay'}}</el-button>
     </div>
   </el-dialog>
 </template>
@@ -16,7 +18,7 @@
     name: 'summarize',
     data () {
       return {
-
+        GS
       }
     },
     computed: {
@@ -88,6 +90,7 @@
               },
               {
                 type: 'column',
+                name: 'remain time',
                 data: this.remainTimeForEachDay
               }
             ]
