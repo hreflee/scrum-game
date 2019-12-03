@@ -1,5 +1,7 @@
 <template>
-  <el-dialog :visible="globalState === GS.ENT_MEMBER" :show-close="false" title="Enter your team member information">
+  <el-dialog :visible="globalState === GS.ENT_MEMBER"
+             :show-close="false"
+             title="Enter your team member information">
     <el-form v-for="(memberItem, index) in members" :key="memberItem.id" inline class="member-item">
       <el-form-item label="Name">
         <el-input v-model="memberItem.name"></el-input>

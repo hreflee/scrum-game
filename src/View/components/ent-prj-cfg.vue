@@ -1,5 +1,7 @@
 <template>
-  <el-dialog :visible="globalState === GS.ENT_PRJ_CFG" :show-close="false" title="Enter your project configuration">
+  <el-dialog :visible="globalState === GS.ENT_PRJ_CFG"
+             :show-close="false"
+             title="Enter your project configuration">
     <el-form>
       <el-form-item label="Number of sprint">
         <el-input-number v-model="projectConfig.numOfSprint"></el-input-number>
