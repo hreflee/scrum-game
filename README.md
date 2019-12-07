@@ -1,14 +1,21 @@
 # scrum-game
 
 ## Project setup
-You should have nodejs >= 10.0 on your computer. And have install `yarn` `@vue/cli` with npm.
+You should have `nodejs` >= 10.0 on your computer. And have install `yarn` `@vue/cli` with npm.
 
-Once you have make your environment ready, run
+* Develop
+
 ```
 yarn install
 yarn serve
 ```
-and enjoy your development.
+
+* Build
+
+```
+yarn install
+yarn serve
+```
 
 ### Project structure
 [A brief system design](https://drive.google.com/file/d/13cq_dwREi-ScT4ablY6bY8jX3foHvQpk/view?usp=sharing)
@@ -27,8 +34,11 @@ and enjoy your development.
 │       ├── assets
 │       │   └── logo.png
 │       ├── components
-│       │   └── HelloWorld.vue
-│       ├── App.vue                  --- page frame
+│       │   └── xxx.vue
+│       ├── store
+│       │   ├── index.js
+│       │   └── fsm.js
+│       ├── app.vue                  --- page frame
 │       └── main.js                  --- entry of view
 ├── babel.config.js
 ├── package.json
@@ -40,4 +50,4 @@ and enjoy your development.
 
 ### Code style
 1. JavaScript version: ES6
-2. DO NOT use `var` when define variance, use `let` or `const`
+2. Try to follow ESLint rule
