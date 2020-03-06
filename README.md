@@ -1,7 +1,8 @@
-# scrum-game
+# scrum-game ([online demo](https://hreflee.github.io/scrum-game/))
 
 ## Project setup
 You should have `nodejs` >= 10.0 on your computer. And have installed `yarn` `@vue/cli` with npm.
+
 
 * Develop
 
